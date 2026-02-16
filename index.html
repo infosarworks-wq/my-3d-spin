@@ -17,7 +17,7 @@ body{
 
 /* Portrait viewer */
 .viewer{
-  aspect-ratio: 9 / 16;
+  aspect-ratio: 9 / 16;          /* 720 × 1280 feel */
   height: 90vh;
   max-height: 1280px;
   position: relative;
@@ -36,6 +36,7 @@ body{
   transition: transform 0.04s linear;
 }
 
+/* Fullscreen button */
 .fullscreen-btn{
   position:absolute;
   top:10px;
@@ -63,9 +64,159 @@ body{
 const totalX = 24;
 const totalY = 5;
 
-const ROTATE_THRESHOLD = 12;   // bigger = smoother
+const ROTATE_THRESHOLD = 12;
 const PAN_SENSITIVITY = 1;
-const SMOOTHING = 0.25;        // motion smoothing
+const SMOOTHING = 0.25;
 
 /* STATE */
-let x
+let x = 1, y = 1;
+let scale = 1;
+let isHiRes = false;
+
+let panX = 0, panY = 0;
+let velX = 0, velY = 0;
+
+const frame = document.getElementById("frame");
+const viewer = document.getElementById("viewer");
+const fsBtn = document.getElementById("fsBtn");
+
+let isDragging = false;
+let startX = 0, startY = 0;
+
+/* IMAGE PATH */
+function getImagePath(index){
+  const padded = String(index).padStart(4,"0");
+  return isHiRes
+    ? `images/highres/${padded}.png`
+    : `images/Lowres/${padded}.png`;
+}
+
+/* UPDATE FRAME */
+function updateFrame(){
+  const index = (y - 1) * totalX + x;
+  frame.src = getImagePath(index);
+}
+
+/* APPLY TRANSFORM */
+function applyTransform(){
+  frame.style.transform =
+    `translate(${panX}px, ${panY}px) scale(${scale})`;
+}
+
+/* START DRAG */
+function startDrag(px, py){
+  isDragging = true;
+  startX = px;
+  startY = py;
+  viewer.style.cursor = "grabbing";
+}
+
+/* END DRAG */
+function endDrag(){
+  isDragging = false;
+  viewer.style.cursor = "grab";
+}
+
+/* MOVE DRAG */
+function moveDrag(px, py){
+  if(!isDragging) return;
+
+  let dx = px - startX;
+  let dy = py - startY;
+
+  startX = px;
+  startY = py;
+
+  /* smooth velocity */
+  velX = velX * (1 - SMOOTHING) + dx * SMOOTHING;
+  velY = velY * (1 - SMOOTHING) + dy * SMOOTHING;
+
+  /* PAN when zoomed */
+  if(scale > 1){
+    panX += velX * PAN_SENSITIVITY;
+    panY += velY * PAN_SENSITIVITY;
+    applyTransform();
+    return;
+  }
+
+  /* ROTATE when not zoomed */
+  if(Math.abs(velX) > ROTATE_THRESHOLD){
+    x += velX > 0 ? -1 : 1;
+    if(x < 1) x = totalX;
+    if(x > totalX) x = 1;
+    updateFrame();
+  }
+
+  if(Math.abs(velY) > ROTATE_THRESHOLD){
+    y += velY > 0 ? 1 : -1;
+    y = Math.max(1, Math.min(totalY, y));
+    updateFrame();
+  }
+}
+
+/* ===== MOUSE EVENTS ===== */
+viewer.addEventListener("mousedown", e => {
+  startDrag(e.clientX, e.clientY);
+});
+
+window.addEventListener("mousemove", e => {
+  moveDrag(e.clientX, e.clientY);
+});
+
+window.addEventListener("mouseup", endDrag);
+
+/* ===== TOUCH EVENTS ===== */
+viewer.addEventListener("touchstart", e => {
+  const t = e.touches[0];
+  startDrag(t.clientX, t.clientY);
+});
+
+viewer.addEventListener("touchmove", e => {
+  const t = e.touches[0];
+  moveDrag(t.clientX, t.clientY);
+});
+
+viewer.addEventListener("touchend", endDrag);
+
+/* ===== WHEEL ZOOM ===== */
+viewer.addEventListener("wheel", e=>{
+  e.preventDefault();
+
+  scale += e.deltaY * -0.002;
+  scale = Math.min(Math.max(1, scale), 5);
+
+  if(scale === 1){
+    panX = 0;
+    panY = 0;
+  }
+
+  applyTransform();
+},{ passive:false });
+
+/* ===== DOUBLE CLICK → HI-RES ===== */
+viewer.addEventListener("dblclick", ()=>{
+  isHiRes = !isHiRes;
+
+  if(isHiRes){
+    scale = 2;
+  }else{
+    scale = 1;
+    panX = panY = 0;
+  }
+
+  applyTransform();
+  updateFrame();
+});
+
+/* ===== FULLSCREEN ===== */
+fsBtn.addEventListener("click", ()=>{
+  if(!document.fullscreenElement){
+    viewer.requestFullscreen();
+  }else{
+    document.exitFullscreen();
+  }
+});
+</script>
+
+</body>
+</html>
