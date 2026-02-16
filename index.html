@@ -1,68 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Product Viewer</title>
-    
-    <script src="https://scaleflex.cloudimg.io/v7/plugins/js-cloudimage-360-view/latest/js-cloudimage-360-view.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Viewer</title>
 
-    <style>
-        body { 
-            background-color: #1a1a1a; /* Dark background makes vertical items pop */
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            font-family: Arial, sans-serif;
-        }
+<script src="https://unpkg.com/js-cloudimage-360-view/dist/js-cloudimage-360-view.min.js"></script>
 
-        .viewer-container {
-            width: 95%;
-            max-width: 500px; /* Perfect width for vertical/portrait photos */
-            background: #ffffff;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
+<style>
+body{
+  margin:0;
+  background:#111;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
 
-        /* This ensures tall photos fit on the screen without scrolling */
-        .cloudimage-360 img {
-            object-fit: contain;
-            max-height: 80vh;
-        }
-
-        .instruction {
-            text-align: center;
-            color: #666;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-    </style>
+.viewer{
+  width:90%;
+  max-width:500px;
+}
+</style>
 </head>
+
 <body>
 
-<div class="viewer-container">
-    <div class="cloudimage-360"
-         data-folder="https://infosarworks-wq.github.io/my-3d-spin/images/Lowres/"
-         data-zoom-folder="https://infosarworks-wq.github.io/my-3d-spin/images/highres/"
-         data-filename-x="{index}.png" 
-         data-amount-x="24"
-         data-amount-y="5"
-         data-index-zero-base="false"
-         data-image-list-format="0000"
-         data-responsive="true"
-         data-zoom="3"
-         data-full-screen="true"
-         data-lazyload="false">
-    </div>
-    <div class="instruction">Drag to Rotate • Double Click to Zoom</div>
+<div class="viewer">
+  <div
+    class="cloudimage-360"
+    data-folder="https://infosarworks-wq.github.io/my-3d-spin/images/Lowres/"
+    data-filename-x="{index}.png"
+    data-amount-x="24"
+    data-amount-y="5"
+    data-index-zero-base="false"
+    data-image-list-format="0000"
+    data-responsive="true">
+  </div>
 </div>
 
 <script>
-    // This forces the script to run as soon as the page is ready
-    window.CI360.init();
+window.CI360.init();
 </script>
 
 </body>
