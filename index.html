@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3D Viewer</title>
 
-<script src="https://unpkg.com/js-cloudimage-360-view/dist/js-cloudimage-360-view.min.js"></script>
+<!-- CORRECT cloudimage viewer -->
+<script src="https://unpkg.com/js-cloudimage-360-view@latest/dist/js-cloudimage-360-view.min.js"></script>
 
 <style>
 body{
@@ -30,12 +31,15 @@ body{
   <div
     class="cloudimage-360"
     data-folder="https://infosarworks-wq.github.io/my-3d-spin/images/Lowres/"
+    data-zoom-folder="https://infosarworks-wq.github.io/my-3d-spin/images/highres/"
     data-filename-x="{index}.png"
     data-amount-x="24"
     data-amount-y="5"
     data-index-zero-base="false"
     data-image-list-format="0000"
-    data-responsive="true">
+    data-responsive="true"
+    data-zoom="2"
+    data-lazyload="false">
   </div>
 </div>
 
