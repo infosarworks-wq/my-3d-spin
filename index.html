@@ -15,22 +15,26 @@ body{
   height:100vh;
 }
 
+/* Portrait container 720x1280 ratio */
 .viewer{
-  width:90%;
-  max-width:800px;
-  position:relative;
-  cursor:grab;
-  overflow:hidden;
+  aspect-ratio: 9 / 16;          /* 720x1280 */
+  height: 90vh;
+  max-height: 1280px;
+  position: relative;
+  cursor: grab;
+  overflow: hidden;
   background:#000;
 }
 
+/* Image */
 .viewer img{
   width:100%;
-  display:block;
+  height:100%;
+  object-fit: contain;
   user-select:none;
   pointer-events:none;
   transform-origin:center center;
-  transition: transform 0.1s linear;
+  transition: transform 0.05s linear;
 }
 
 /* Fullscreen button */
@@ -44,6 +48,7 @@ body{
   padding:8px 12px;
   cursor:pointer;
   font-size:14px;
+  z-index:10;
 }
 </style>
 </head>
@@ -66,6 +71,9 @@ let y = 1;
 let scale = 1;
 let isHiRes = false;
 
+let panX = 0;
+let panY = 0;
+
 const frame = document.getElementById("frame");
 const viewer = document.getElementById("viewer");
 const fsBtn = document.getElementById("fsBtn");
@@ -74,7 +82,7 @@ let isDragging = false;
 let startX = 0;
 let startY = 0;
 
-/* PATH HELPER */
+/* PATH */
 function getImagePath(index){
   const padded = String(index).padStart(4, "0");
   return isHiRes
@@ -88,7 +96,13 @@ function updateFrame(){
   frame.src = getImagePath(index);
 }
 
-/* DRAG ROTATION */
+/* APPLY TRANSFORM */
+function applyTransform(){
+  frame.style.transform =
+    `translate(${panX}px, ${panY}px) scale(${scale})`;
+}
+
+/* DRAG */
 viewer.addEventListener("mousedown", e=>{
   isDragging = true;
   startX = e.clientX;
@@ -107,18 +121,28 @@ window.addEventListener("mousemove", e=>{
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
 
-  if(Math.abs(dx) > 8){
+  startX = e.clientX;
+  startY = e.clientY;
+
+  /* 🔹 If zoomed → PAN ONLY */
+  if(scale > 1){
+    panX += dx;
+    panY += dy;
+    applyTransform();
+    return;
+  }
+
+  /* 🔹 If not zoomed → ROTATE */
+  if(Math.abs(dx) > 6){
     x += dx > 0 ? -1 : 1;
     if(x < 1) x = totalX;
     if(x > totalX) x = 1;
-    startX = e.clientX;
   }
 
-  if(Math.abs(dy) > 12){
+  if(Math.abs(dy) > 10){
     y += dy > 0 ? 1 : -1;
     if(y < 1) y = 1;
     if(y > totalY) y = totalY;
-    startY = e.clientY;
   }
 
   updateFrame();
@@ -127,22 +151,32 @@ window.addEventListener("mousemove", e=>{
 /* WHEEL ZOOM */
 viewer.addEventListener("wheel", e=>{
   e.preventDefault();
+
   scale += e.deltaY * -0.002;
   scale = Math.min(Math.max(1, scale), 5);
-  frame.style.transform = `scale(${scale})`;
+
+  /* Reset pan if zoomed out */
+  if(scale === 1){
+    panX = 0;
+    panY = 0;
+  }
+
+  applyTransform();
 },{ passive:false });
 
-/* DOUBLE-CLICK → HI-RES ZOOM */
+/* DOUBLE CLICK → HI-RES + ZOOM */
 viewer.addEventListener("dblclick", ()=>{
   isHiRes = !isHiRes;
 
   if(isHiRes){
-    scale = 2;          // auto zoom in
+    scale = 2;
   }else{
-    scale = 1;          // reset zoom
+    scale = 1;
+    panX = 0;
+    panY = 0;
   }
 
-  frame.style.transform = `scale(${scale})`;
+  applyTransform();
   updateFrame();
 });
 
@@ -174,18 +208,26 @@ viewer.addEventListener("touchmove", e=>{
   const dx = t.clientX - startX;
   const dy = t.clientY - startY;
 
-  if(Math.abs(dx) > 8){
+  startX = t.clientX;
+  startY = t.clientY;
+
+  if(scale > 1){
+    panX += dx;
+    panY += dy;
+    applyTransform();
+    return;
+  }
+
+  if(Math.abs(dx) > 6){
     x += dx > 0 ? -1 : 1;
     if(x < 1) x = totalX;
     if(x > totalX) x = 1;
-    startX = t.clientX;
   }
 
-  if(Math.abs(dy) > 12){
+  if(Math.abs(dy) > 10){
     y += dy > 0 ? 1 : -1;
     if(y < 1) y = 1;
     if(y > totalY) y = totalY;
-    startY = t.clientY;
   }
 
   updateFrame();
