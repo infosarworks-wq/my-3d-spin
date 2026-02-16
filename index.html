@@ -61,26 +61,27 @@ body{
 /* CONFIG */
 const totalX = 24;
 const totalY = 5;
-
 const ROTATE_SPEED = 0.15;
 const PAN_SPEED = 1;
 
-/* STATE */
-let x = 1;
-let y = 1;
+/* FLOAT rotation state (smooth) */
+let floatX = 1;
+let floatY = 1;
+
+/* INTEGER frame state (real images) */
+let frameX = 1;
+let frameY = 1;
+
 let scale = 1;
 let isHiRes = false;
-
-let panX = 0;
-let panY = 0;
+let panX = 0, panY = 0;
 
 const frame = document.getElementById("frame");
 const viewer = document.getElementById("viewer");
 const fsBtn = document.getElementById("fsBtn");
 
 let isDragging = false;
-let startX = 0;
-let startY = 0;
+let startX = 0, startY = 0;
 
 /* IMAGE PATH */
 function getImagePath(index){
@@ -90,22 +91,22 @@ function getImagePath(index){
     : `images/Lowres/${padded}.png`;
 }
 
-/* UPDATE FRAME */
+/* UPDATE FRAME (always integers) */
 function updateFrame(){
-  const frameX = Math.round(x);   // ⭐ critical fix
-  const frameY = Math.round(y);
+  frameX = Math.round(floatX);
+  frameY = Math.round(floatY);
 
   const index = (frameY - 1) * totalX + frameX;
   frame.src = getImagePath(index);
 }
 
-/* APPLY TRANSFORM */
+/* APPLY PAN/ZOOM */
 function applyTransform(){
   frame.style.transform =
     `translate(${panX}px, ${panY}px) scale(${scale})`;
 }
 
-/* START DRAG */
+/* DRAG START */
 function startDrag(px, py){
   isDragging = true;
   startX = px;
@@ -113,13 +114,13 @@ function startDrag(px, py){
   viewer.style.cursor = "grabbing";
 }
 
-/* END DRAG */
+/* DRAG END */
 function endDrag(){
   isDragging = false;
   viewer.style.cursor = "grab";
 }
 
-/* MOVE DRAG */
+/* DRAG MOVE */
 function moveDrag(px, py){
   if(!isDragging) return;
 
@@ -137,16 +138,16 @@ function moveDrag(px, py){
     return;
   }
 
-  /* CONTINUOUS ROTATION */
-  x -= dx * ROTATE_SPEED;
-  y += dy * ROTATE_SPEED;
+  /* SMOOTH FLOAT ROTATION */
+  floatX -= dx * ROTATE_SPEED;
+  floatY += dy * ROTATE_SPEED;
 
-  /* wrap horizontal */
-  if(x < 1) x += totalX;
-  if(x > totalX) x -= totalX;
+  /* WRAP horizontal */
+  while(floatX < 1) floatX += totalX;
+  while(floatX > totalX) floatX -= totalX;
 
-  /* clamp vertical */
-  y = Math.max(1, Math.min(totalY, y));
+  /* CLAMP vertical */
+  floatY = Math.max(1, Math.min(totalY, floatY));
 
   updateFrame();
 }
