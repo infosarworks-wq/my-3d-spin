@@ -17,10 +17,11 @@ body{
 
 .viewer{
   width:90%;
-  max-width:700px;
+  max-width:800px;
   position:relative;
   cursor:grab;
   overflow:hidden;
+  background:#000;
 }
 
 .viewer img{
@@ -29,6 +30,20 @@ body{
   user-select:none;
   pointer-events:none;
   transform-origin:center center;
+  transition: transform 0.1s linear;
+}
+
+/* Fullscreen button */
+.fullscreen-btn{
+  position:absolute;
+  top:10px;
+  right:10px;
+  background:rgba(0,0,0,0.6);
+  color:#fff;
+  border:none;
+  padding:8px 12px;
+  cursor:pointer;
+  font-size:14px;
 }
 </style>
 </head>
@@ -36,109 +51,140 @@ body{
 <body>
 
 <div class="viewer" id="viewer">
+  <button class="fullscreen-btn" id="fsBtn">⛶</button>
   <img id="frame" src="images/Lowres/0001.png" alt="360 view">
 </div>
 
 <script>
-/* ===== CONFIG ===== */
-const totalX = 24;   // number of angles horizontally
-const totalY = 5;    // number of vertical layers
+/* CONFIG */
+const totalX = 24;
+const totalY = 5;
 
-/* ===== STATE ===== */
+/* STATE */
 let x = 1;
 let y = 1;
 let scale = 1;
+let isHiRes = false;
 
 const frame = document.getElementById("frame");
 const viewer = document.getElementById("viewer");
+const fsBtn = document.getElementById("fsBtn");
 
 let isDragging = false;
 let startX = 0;
 let startY = 0;
 
-/* ===== UPDATE IMAGE ===== */
-function updateFrame() {
-  const index = (y - 1) * totalX + x;
+/* PATH HELPER */
+function getImagePath(index){
   const padded = String(index).padStart(4, "0");
-  frame.src = `images/Lowres/${padded}.png`;
+  return isHiRes
+    ? `images/highres/${padded}.png`
+    : `images/Lowres/${padded}.png`;
 }
 
-/* ===== MOUSE DRAG ===== */
-viewer.addEventListener("mousedown", e => {
+/* UPDATE FRAME */
+function updateFrame(){
+  const index = (y - 1) * totalX + x;
+  frame.src = getImagePath(index);
+}
+
+/* DRAG ROTATION */
+viewer.addEventListener("mousedown", e=>{
   isDragging = true;
   startX = e.clientX;
   startY = e.clientY;
   viewer.style.cursor = "grabbing";
 });
 
-window.addEventListener("mouseup", () => {
+window.addEventListener("mouseup", ()=>{
   isDragging = false;
   viewer.style.cursor = "grab";
 });
 
-window.addEventListener("mousemove", e => {
-  if (!isDragging) return;
+window.addEventListener("mousemove", e=>{
+  if(!isDragging) return;
 
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
 
-  /* rotate horizontally */
-  if (Math.abs(dx) > 8) {
+  if(Math.abs(dx) > 8){
     x += dx > 0 ? -1 : 1;
-    if (x < 1) x = totalX;
-    if (x > totalX) x = 1;
+    if(x < 1) x = totalX;
+    if(x > totalX) x = 1;
     startX = e.clientX;
   }
 
-  /* change vertical layer */
-  if (Math.abs(dy) > 12) {
+  if(Math.abs(dy) > 12){
     y += dy > 0 ? 1 : -1;
-    if (y < 1) y = 1;
-    if (y > totalY) y = totalY;
+    if(y < 1) y = 1;
+    if(y > totalY) y = totalY;
     startY = e.clientY;
   }
 
   updateFrame();
 });
 
-/* ===== MOUSE WHEEL ZOOM ===== */
-viewer.addEventListener("wheel", e => {
+/* WHEEL ZOOM */
+viewer.addEventListener("wheel", e=>{
   e.preventDefault();
-  scale += e.deltaY * -0.001;
-  scale = Math.min(Math.max(1, scale), 3);
+  scale += e.deltaY * -0.002;
+  scale = Math.min(Math.max(1, scale), 5);
   frame.style.transform = `scale(${scale})`;
+},{ passive:false });
+
+/* DOUBLE-CLICK → HI-RES ZOOM */
+viewer.addEventListener("dblclick", ()=>{
+  isHiRes = !isHiRes;
+
+  if(isHiRes){
+    scale = 2;          // auto zoom in
+  }else{
+    scale = 1;          // reset zoom
+  }
+
+  frame.style.transform = `scale(${scale})`;
+  updateFrame();
 });
 
-/* ===== TOUCH SUPPORT (MOBILE) ===== */
-viewer.addEventListener("touchstart", e => {
+/* FULLSCREEN */
+fsBtn.addEventListener("click", ()=>{
+  if(!document.fullscreenElement){
+    viewer.requestFullscreen();
+  }else{
+    document.exitFullscreen();
+  }
+});
+
+/* TOUCH SUPPORT */
+viewer.addEventListener("touchstart", e=>{
   const t = e.touches[0];
   isDragging = true;
   startX = t.clientX;
   startY = t.clientY;
 });
 
-viewer.addEventListener("touchend", () => {
+viewer.addEventListener("touchend", ()=>{
   isDragging = false;
 });
 
-viewer.addEventListener("touchmove", e => {
-  if (!isDragging) return;
+viewer.addEventListener("touchmove", e=>{
+  if(!isDragging) return;
 
   const t = e.touches[0];
   const dx = t.clientX - startX;
   const dy = t.clientY - startY;
 
-  if (Math.abs(dx) > 8) {
+  if(Math.abs(dx) > 8){
     x += dx > 0 ? -1 : 1;
-    if (x < 1) x = totalX;
-    if (x > totalX) x = 1;
+    if(x < 1) x = totalX;
+    if(x > totalX) x = 1;
     startX = t.clientX;
   }
 
-  if (Math.abs(dy) > 12) {
+  if(Math.abs(dy) > 12){
     y += dy > 0 ? 1 : -1;
-    if (y < 1) y = 1;
-    if (y > totalY) y = totalY;
+    if(y < 1) y = 1;
+    if(y > totalY) y = totalY;
     startY = t.clientY;
   }
 
