@@ -15,9 +15,8 @@ body{
   height:100vh;
 }
 
-/* Portrait viewer */
 .viewer{
-  aspect-ratio: 9 / 16;          /* 720 × 1280 feel */
+  aspect-ratio: 9 / 16;
   height: 90vh;
   max-height: 1280px;
   position: relative;
@@ -33,10 +32,9 @@ body{
   user-select:none;
   pointer-events:none;
   transform-origin:center center;
-  transition: transform 0.04s linear;
+  transition: transform 0.03s linear;
 }
 
-/* Fullscreen button */
 .fullscreen-btn{
   position:absolute;
   top:10px;
@@ -64,9 +62,8 @@ body{
 const totalX = 24;
 const totalY = 5;
 
-const ROTATE_THRESHOLD = 12;
-const PAN_SENSITIVITY = 1;
-const SMOOTHING = 0.25;
+const ROTATE_SPEED = 0.15;   // smaller = smoother continuous rotation
+const PAN_SPEED = 1;
 
 /* STATE */
 let x = 1, y = 1;
@@ -74,7 +71,6 @@ let scale = 1;
 let isHiRes = false;
 
 let panX = 0, panY = 0;
-let velX = 0, velY = 0;
 
 const frame = document.getElementById("frame");
 const viewer = document.getElementById("viewer");
@@ -121,57 +117,46 @@ function endDrag(){
 function moveDrag(px, py){
   if(!isDragging) return;
 
-  let dx = px - startX;
-  let dy = py - startY;
+  const dx = px - startX;
+  const dy = py - startY;
 
   startX = px;
   startY = py;
 
-  /* smooth velocity */
-  velX = velX * (1 - SMOOTHING) + dx * SMOOTHING;
-  velY = velY * (1 - SMOOTHING) + dy * SMOOTHING;
-
   /* PAN when zoomed */
   if(scale > 1){
-    panX += velX * PAN_SENSITIVITY;
-    panY += velY * PAN_SENSITIVITY;
+    panX += dx * PAN_SPEED;
+    panY += dy * PAN_SPEED;
     applyTransform();
     return;
   }
 
-  /* ROTATE when not zoomed */
-  if(Math.abs(velX) > ROTATE_THRESHOLD){
-    x += velX > 0 ? -1 : 1;
-    if(x < 1) x = totalX;
-    if(x > totalX) x = 1;
-    updateFrame();
-  }
+  /* CONTINUOUS ROTATION */
+  x -= dx * ROTATE_SPEED;
 
-  if(Math.abs(velY) > ROTATE_THRESHOLD){
-    y += velY > 0 ? 1 : -1;
-    y = Math.max(1, Math.min(totalY, y));
-    updateFrame();
-  }
+  /* wrap horizontally */
+  while(x < 1) x += totalX;
+  while(x > totalX) x -= totalX;
+
+  /* vertical tilt */
+  y += dy * ROTATE_SPEED;
+  y = Math.max(1, Math.min(totalY, Math.round(y)));
+
+  updateFrame();
 }
 
-/* ===== MOUSE EVENTS ===== */
-viewer.addEventListener("mousedown", e => {
-  startDrag(e.clientX, e.clientY);
-});
-
-window.addEventListener("mousemove", e => {
-  moveDrag(e.clientX, e.clientY);
-});
-
+/* ===== MOUSE ===== */
+viewer.addEventListener("mousedown", e => startDrag(e.clientX, e.clientY));
+window.addEventListener("mousemove", e => moveDrag(e.clientX, e.clientY));
 window.addEventListener("mouseup", endDrag);
 
-/* ===== TOUCH EVENTS ===== */
-viewer.addEventListener("touchstart", e => {
+/* ===== TOUCH ===== */
+viewer.addEventListener("touchstart", e=>{
   const t = e.touches[0];
   startDrag(t.clientX, t.clientY);
 });
 
-viewer.addEventListener("touchmove", e => {
+viewer.addEventListener("touchmove", e=>{
   const t = e.touches[0];
   moveDrag(t.clientX, t.clientY);
 });
@@ -193,12 +178,12 @@ viewer.addEventListener("wheel", e=>{
   applyTransform();
 },{ passive:false });
 
-/* ===== DOUBLE CLICK → HI-RES ===== */
+/* ===== DOUBLE CLICK → HI-RES 3× ===== */
 viewer.addEventListener("dblclick", ()=>{
   isHiRes = !isHiRes;
 
   if(isHiRes){
-    scale = 2;
+    scale = 3;   // ← stronger zoom as requested
   }else{
     scale = 1;
     panX = panY = 0;
