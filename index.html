@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3D Viewer</title>
 
-<!-- CORRECT cloudimage viewer -->
-<script src="https://unpkg.com/js-cloudimage-360-view@latest/dist/js-cloudimage-360-view.min.js"></script>
+<!-- Correct official viewer script -->
+<script src="https://cdn.scaleflex.it/plugins/js-cloudimage-360-view/latest/js-cloudimage-360-view.min.js"></script>
 
 <style>
 body{
@@ -38,14 +38,17 @@ body{
     data-index-zero-base="false"
     data-image-list-format="0000"
     data-responsive="true"
-    data-zoom="2"
-    data-lazyload="false">
+    data-zoom="2">
   </div>
 </div>
 
 <script>
-window.CI360.init();
+document.addEventListener("DOMContentLoaded", function () {
+  if (window.CI360) {
+    window.CI360.init();
+  }
+});
 </script>
 
 </body>
-</html>
+</ht
