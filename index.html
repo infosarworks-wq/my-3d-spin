@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My 5-Layer 3D Spin</title>
+    <script src="https://scaleflex.cloudimg.io/v7/plugins/js-cloudimage-360-view/latest/js-cloudimage-360-view.min.js"></script>
+    <style>
+        body { background-color: #f0f0f0; display: flex; justify-content: center; padding-top: 50px; }
+        .viewer-container { background: white; padding: 10px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+
+    <div class="viewer-container">
+        <div class="cloudimage-360"
+             data-folder="https://infosarworks-wq.github.io/my-3-spin/images/"
+             data-filename-x="{index}.png" 
+             data-amount-x="24"
+             data-amount-y="5"
+             data-index-zero-base="false"
+             data-image-list-format="0000"
+             data-responsive="true">
+        </div>
+    </div>
+
+    <script>
+        window.CI360.init();
+    </script>
+</body>
+</html>
