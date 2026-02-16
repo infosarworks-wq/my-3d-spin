@@ -17,9 +17,10 @@ body{
 
 .viewer{
   width:90%;
-  max-width:500px;
+  max-width:700px;
   position:relative;
   cursor:grab;
+  overflow:hidden;
 }
 
 .viewer img{
@@ -27,6 +28,7 @@ body{
   display:block;
   user-select:none;
   pointer-events:none;
+  transform-origin:center center;
 }
 </style>
 </head>
@@ -34,15 +36,18 @@ body{
 <body>
 
 <div class="viewer" id="viewer">
-  <img id="frame" src="images/Lowres/0001.png">
+  <img id="frame" src="images/Lowres/0001.png" alt="360 view">
 </div>
 
 <script>
-const totalX = 24;   // images per row
-const totalY = 5;    // vertical layers
+/* ===== CONFIG ===== */
+const totalX = 24;   // number of angles horizontally
+const totalY = 5;    // number of vertical layers
 
+/* ===== STATE ===== */
 let x = 1;
 let y = 1;
+let scale = 1;
 
 const frame = document.getElementById("frame");
 const viewer = document.getElementById("viewer");
@@ -51,6 +56,14 @@ let isDragging = false;
 let startX = 0;
 let startY = 0;
 
+/* ===== UPDATE IMAGE ===== */
+function updateFrame() {
+  const index = (y - 1) * totalX + x;
+  const padded = String(index).padStart(4, "0");
+  frame.src = `images/Lowres/${padded}.png`;
+}
+
+/* ===== MOUSE DRAG ===== */
 viewer.addEventListener("mousedown", e => {
   isDragging = true;
   startX = e.clientX;
@@ -69,118 +82,67 @@ window.addEventListener("mousemove", e => {
   const dx = e.clientX - startX;
   const dy = e.clientY - startY;
 
-  if (Math.abs(dx) > 10) {
-    x = (x + (dx > 0 ? -1 : 1));
+  /* rotate horizontally */
+  if (Math.abs(dx) > 8) {
+    x += dx > 0 ? -1 : 1;
     if (x < 1) x = totalX;
     if (x > totalX) x = 1;
     startX = e.clientX;
   }
 
-  if (Math.abs(dy) > 15) {
-    y = (y + (dy > 0 ? 1 : -1));
+  /* change vertical layer */
+  if (Math.abs(dy) > 12) {
+    y += dy > 0 ? 1 : -1;
     if (y < 1) y = 1;
     if (y > totalY) y = totalY;
     startY = e.clientY;
   }
 
-  const index = (y - 1) * totalX + x;
-  const padded = String(index).padStart(4, "0");
-
-  frame.src = `images/Lowres/${padded}.png`;
+  updateFrame();
 });
-</script>
 
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Viewer</title>
+/* ===== MOUSE WHEEL ZOOM ===== */
+viewer.addEventListener("wheel", e => {
+  e.preventDefault();
+  scale += e.deltaY * -0.001;
+  scale = Math.min(Math.max(1, scale), 3);
+  frame.style.transform = `scale(${scale})`;
+});
 
-<style>
-body{
-  margin:0;
-  background:#111;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-.viewer{
-  width:90%;
-  max-width:500px;
-  position:relative;
-  cursor:grab;
-}
-
-.viewer img{
-  width:100%;
-  display:block;
-  user-select:none;
-  pointer-events:none;
-}
-</style>
-</head>
-
-<body>
-
-<div class="viewer" id="viewer">
-  <img id="frame" src="images/Lowres/0001.png">
-</div>
-
-<script>
-const totalX = 24;   // images per row
-const totalY = 5;    // vertical layers
-
-let x = 1;
-let y = 1;
-
-const frame = document.getElementById("frame");
-const viewer = document.getElementById("viewer");
-
-let isDragging = false;
-let startX = 0;
-let startY = 0;
-
-viewer.addEventListener("mousedown", e => {
+/* ===== TOUCH SUPPORT (MOBILE) ===== */
+viewer.addEventListener("touchstart", e => {
+  const t = e.touches[0];
   isDragging = true;
-  startX = e.clientX;
-  startY = e.clientY;
-  viewer.style.cursor = "grabbing";
+  startX = t.clientX;
+  startY = t.clientY;
 });
 
-window.addEventListener("mouseup", () => {
+viewer.addEventListener("touchend", () => {
   isDragging = false;
-  viewer.style.cursor = "grab";
 });
 
-window.addEventListener("mousemove", e => {
+viewer.addEventListener("touchmove", e => {
   if (!isDragging) return;
 
-  const dx = e.clientX - startX;
-  const dy = e.clientY - startY;
+  const t = e.touches[0];
+  const dx = t.clientX - startX;
+  const dy = t.clientY - startY;
 
-  if (Math.abs(dx) > 10) {
-    x = (x + (dx > 0 ? -1 : 1));
+  if (Math.abs(dx) > 8) {
+    x += dx > 0 ? -1 : 1;
     if (x < 1) x = totalX;
     if (x > totalX) x = 1;
-    startX = e.clientX;
+    startX = t.clientX;
   }
 
-  if (Math.abs(dy) > 15) {
-    y = (y + (dy > 0 ? 1 : -1));
+  if (Math.abs(dy) > 12) {
+    y += dy > 0 ? 1 : -1;
     if (y < 1) y = 1;
     if (y > totalY) y = totalY;
-    startY = e.clientY;
+    startY = t.clientY;
   }
 
-  const index = (y - 1) * totalX + x;
-  const padded = String(index).padStart(4, "0");
-
-  frame.src = `images/Lowres/${padded}.png`;
+  updateFrame();
 });
 </script>
 
