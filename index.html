@@ -1,29 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My 5-Layer 3D Spin</title>
+    <title>My Pro 3D Spin</title>
     <script src="https://scaleflex.cloudimg.io/v7/plugins/js-cloudimage-360-view/latest/js-cloudimage-360-view.min.js"></script>
     <style>
-        body { background-color: #f0f0f0; display: flex; justify-content: center; padding-top: 50px; }
-        .viewer-container { background: white; padding: 10px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        body { background-color: #f8f9fa; display: flex; justify-content: center; padding-top: 20px; margin: 0; }
+        .viewer-container { width: 90%; max-width: 1000px; background: white; border-radius: 12px; padding: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+        .cloudimage-360 { border-radius: 8px; overflow: hidden; }
     </style>
 </head>
 <body>
 
-    <div class="viewer-container">
-        <div class="cloudimage-360"
-             data-folder="https://infosarworks-wq.github.io/my-3-spin/images/"
-             data-filename-x="{index}.png" 
-             data-amount-x="24"
-             data-amount-y="5"
-             data-index-zero-base="false"
-             data-image-list-format="0000"
-             data-responsive="true">
-        </div>
+<div class="viewer-container">
+    <div class="cloudimage-360"
+         data-folder="https://infosarworks-wq.github.io/my-3d-spin/images/lowres/"
+         data-zoom-folder="https://infosarworks-wq.github.io/my-3d-spin/images/highres/"
+         data-filename-x="{index}.png" 
+         data-amount-x="24"
+         data-amount-y="5"
+         data-index-zero-base="false"
+         data-image-list-format="0000"
+         data-lazyload="true"
+         data-box-shadow="0 0 10px rgba(0,0,0,0.1)">
+         
+         <div class="cloudimage-360-prev"></div>
+         <div class="cloudimage-360-next"></div>
     </div>
+</div>
 
-    <script>
-        window.CI360.init();
-    </script>
+<script>
+    window.CI360.init();
+</script>
+
 </body>
 </html>
