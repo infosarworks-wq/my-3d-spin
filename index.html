@@ -3,10 +3,25 @@
 <head>
     <title>My Pro 3D Spin</title>
     <script src="https://scaleflex.cloudimg.io/v7/plugins/js-cloudimage-360-view/latest/js-cloudimage-360-view.min.js"></script>
-    <style>
-        body { background-color: #f8f9fa; display: flex; justify-content: center; padding-top: 20px; margin: 0; }
-        .viewer-container { width: 90%; max-width: 1000px; background: white; border-radius: 12px; padding: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-        .cloudimage-360 { border-radius: 8px; overflow: hidden; }
+   <style>
+        body { 
+            background-color: #ffffff; 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; /* Keeps it at the top */
+            padding-top: 20px; 
+            margin: 0;
+        }
+        .viewer-box { 
+            width: 100%; 
+            max-width: 500px; /* Narrower width for vertical photos */
+            height: auto;
+        }
+        /* This ensures the viewer stays tall */
+        .cloudimage-360 img {
+            object-fit: contain;
+            max-height: 80vh; /* Limits height so it fits on phone screens */
+        }
     </style>
 </head>
 <body>
