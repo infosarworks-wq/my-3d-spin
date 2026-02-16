@@ -62,22 +62,25 @@ body{
 const totalX = 24;
 const totalY = 5;
 
-const ROTATE_SPEED = 0.15;   // smaller = smoother continuous rotation
+const ROTATE_SPEED = 0.15;
 const PAN_SPEED = 1;
 
 /* STATE */
-let x = 1, y = 1;
+let x = 1;
+let y = 1;
 let scale = 1;
 let isHiRes = false;
 
-let panX = 0, panY = 0;
+let panX = 0;
+let panY = 0;
 
 const frame = document.getElementById("frame");
 const viewer = document.getElementById("viewer");
 const fsBtn = document.getElementById("fsBtn");
 
 let isDragging = false;
-let startX = 0, startY = 0;
+let startX = 0;
+let startY = 0;
 
 /* IMAGE PATH */
 function getImagePath(index){
@@ -89,7 +92,10 @@ function getImagePath(index){
 
 /* UPDATE FRAME */
 function updateFrame(){
-  const index = (y - 1) * totalX + x;
+  const frameX = Math.round(x);   // ⭐ critical fix
+  const frameY = Math.round(y);
+
+  const index = (frameY - 1) * totalX + frameX;
   frame.src = getImagePath(index);
 }
 
@@ -133,24 +139,24 @@ function moveDrag(px, py){
 
   /* CONTINUOUS ROTATION */
   x -= dx * ROTATE_SPEED;
-
-  /* wrap horizontally */
-  while(x < 1) x += totalX;
-  while(x > totalX) x -= totalX;
-
-  /* vertical tilt */
   y += dy * ROTATE_SPEED;
-  y = Math.max(1, Math.min(totalY, Math.round(y)));
+
+  /* wrap horizontal */
+  if(x < 1) x += totalX;
+  if(x > totalX) x -= totalX;
+
+  /* clamp vertical */
+  y = Math.max(1, Math.min(totalY, y));
 
   updateFrame();
 }
 
-/* ===== MOUSE ===== */
+/* MOUSE */
 viewer.addEventListener("mousedown", e => startDrag(e.clientX, e.clientY));
 window.addEventListener("mousemove", e => moveDrag(e.clientX, e.clientY));
 window.addEventListener("mouseup", endDrag);
 
-/* ===== TOUCH ===== */
+/* TOUCH */
 viewer.addEventListener("touchstart", e=>{
   const t = e.touches[0];
   startDrag(t.clientX, t.clientY);
@@ -163,7 +169,7 @@ viewer.addEventListener("touchmove", e=>{
 
 viewer.addEventListener("touchend", endDrag);
 
-/* ===== WHEEL ZOOM ===== */
+/* WHEEL ZOOM */
 viewer.addEventListener("wheel", e=>{
   e.preventDefault();
 
@@ -178,12 +184,12 @@ viewer.addEventListener("wheel", e=>{
   applyTransform();
 },{ passive:false });
 
-/* ===== DOUBLE CLICK → HI-RES 3× ===== */
+/* DOUBLE CLICK → HI-RES 3× */
 viewer.addEventListener("dblclick", ()=>{
   isHiRes = !isHiRes;
 
   if(isHiRes){
-    scale = 3;   // ← stronger zoom as requested
+    scale = 3;
   }else{
     scale = 1;
     panX = panY = 0;
@@ -193,7 +199,7 @@ viewer.addEventListener("dblclick", ()=>{
   updateFrame();
 });
 
-/* ===== FULLSCREEN ===== */
+/* FULLSCREEN */
 fsBtn.addEventListener("click", ()=>{
   if(!document.fullscreenElement){
     viewer.requestFullscreen();
