@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Viewer</title>
+<title>Archviz Viewer</title>
 
 <style>
 body{
@@ -13,6 +13,8 @@ body{
   justify-content:center;
   align-items:center;
   height:100vh;
+  color:white;
+  font-family:Arial, sans-serif;
 }
 
 .viewer{
@@ -32,7 +34,11 @@ body{
   user-select:none;
   pointer-events:none;
   transform-origin:center center;
-  transition: transform 0.03s linear;
+}
+
+.message{
+  text-align:center;
+  font-size:18px;
 }
 
 .fullscreen-btn{
@@ -52,61 +58,109 @@ body{
 
 <body>
 
-<div class="viewer" id="viewer">
-  <button class="fullscreen-btn" id="fsBtn">⛶</button>
-  <img id="frame" src="images/Lowres/0001.png" alt="360 view">
-</div>
+<div id="app"></div>
 
 <script>
-/* CONFIG */
-const totalX = 24;
-const totalY = 5;
+/* ================= CONFIG ================= */
+
+const BUCKET_BASE =
+"https://storage.googleapis.com/archviz-viewer-images";
+
+const TOTAL_X = 24;
+const TOTAL_Y = 5;
 const ROTATE_SPEED = 0.15;
 const PAN_SPEED = 1;
 
-/* FLOAT rotation state (smooth) */
-let floatX = 1;
-let floatY = 1;
+/* =============== URL PARAMS =============== */
 
-/* INTEGER frame state (real images) */
-let frameX = 1;
-let frameY = 1;
+const params = new URLSearchParams(window.location.search);
 
-let scale = 1;
-let isHiRes = false;
-let panX = 0, panY = 0;
+const project = params.get("project");
+const view = params.get("view");        // exterior | room
+const room = params.get("room");
+
+/* ============== VALIDATION =============== */
+
+if(!project || !view){
+  showMessage("Missing project or view in URL");
+  throw new Error("Invalid URL");
+}
+
+/* ============== PATH SETUP =============== */
+
+let basePath = "";
+
+if(view === "exterior"){
+  basePath = `${BUCKET_BASE}/${project}/exterior`;
+}
+else if(view === "room" && room){
+  basePath = `${BUCKET_BASE}/${project}/rooms/${room}`;
+}
+else{
+  showMessage("Room not found");
+  throw new Error("Invalid room");
+}
+
+/* ============ BUILD VIEWER UI ============ */
+
+const app = document.getElementById("app");
+
+app.innerHTML = `
+<div class="viewer" id="viewer">
+  <button class="fullscreen-btn" id="fsBtn">⛶</button>
+  <img id="frame" />
+</div>
+`;
 
 const frame = document.getElementById("frame");
 const viewer = document.getElementById("viewer");
 const fsBtn = document.getElementById("fsBtn");
 
+/* =============== STATE ================= */
+
+let floatX = 1;
+let floatY = 1;
+let scale = 1;
+let isHiRes = false;
+let panX = 0, panY = 0;
+
 let isDragging = false;
 let startX = 0, startY = 0;
 
-/* IMAGE PATH */
-function getImagePath(index){
+/* ============ IMAGE HELPERS ============= */
+
+function imagePath(index){
   const padded = String(index).padStart(4,"0");
-  return isHiRes
-    ? `images/highres/${padded}.png`
-    : `images/Lowres/${padded}.png`;
+
+  if(view === "exterior"){
+    return isHiRes
+      ? `${basePath}/highres/${padded}.png`
+      : `${basePath}/lowres/${padded}.png`;
+  }
+
+  // rooms = single resolution
+  return `${basePath}/${padded}.png`;
 }
 
-/* UPDATE FRAME (always integers) */
 function updateFrame(){
-  frameX = Math.round(floatX);
-  frameY = Math.round(floatY);
+  const frameX = Math.round(floatX);
+  const frameY = Math.round(floatY);
+  const index = (frameY - 1) * TOTAL_X + frameX;
 
-  const index = (frameY - 1) * totalX + frameX;
-  frame.src = getImagePath(index);
+  frame.src = imagePath(index);
+
+  frame.onerror = () => {
+    showMessage("Room not found");
+  };
 }
 
-/* APPLY PAN/ZOOM */
 function applyTransform(){
   frame.style.transform =
     `translate(${panX}px, ${panY}px) scale(${scale})`;
 }
 
-/* DRAG START */
+/* =============== DRAG ================= */
+
 function startDrag(px, py){
   isDragging = true;
   startX = px;
@@ -114,13 +168,11 @@ function startDrag(px, py){
   viewer.style.cursor = "grabbing";
 }
 
-/* DRAG END */
 function endDrag(){
   isDragging = false;
   viewer.style.cursor = "grab";
 }
 
-/* DRAG MOVE */
 function moveDrag(px, py){
   if(!isDragging) return;
 
@@ -130,7 +182,6 @@ function moveDrag(px, py){
   startX = px;
   startY = py;
 
-  /* PAN when zoomed */
   if(scale > 1){
     panX += dx * PAN_SPEED;
     panY += dy * PAN_SPEED;
@@ -138,26 +189,25 @@ function moveDrag(px, py){
     return;
   }
 
-  /* SMOOTH FLOAT ROTATION */
   floatX -= dx * ROTATE_SPEED;
   floatY += dy * ROTATE_SPEED;
 
-  /* WRAP horizontal */
-  while(floatX < 1) floatX += totalX;
-  while(floatX > totalX) floatX -= totalX;
+  while(floatX < 1) floatX += TOTAL_X;
+  while(floatX > TOTAL_X) floatX -= TOTAL_X;
 
-  /* CLAMP vertical */
-  floatY = Math.max(1, Math.min(totalY, floatY));
+  floatY = Math.max(1, Math.min(TOTAL_Y, floatY));
 
   updateFrame();
 }
 
-/* MOUSE */
+/* ============== EVENTS ============== */
+
+// mouse
 viewer.addEventListener("mousedown", e => startDrag(e.clientX, e.clientY));
 window.addEventListener("mousemove", e => moveDrag(e.clientX, e.clientY));
 window.addEventListener("mouseup", endDrag);
 
-/* TOUCH */
+// touch
 viewer.addEventListener("touchstart", e=>{
   const t = e.touches[0];
   startDrag(t.clientX, t.clientY);
@@ -170,7 +220,7 @@ viewer.addEventListener("touchmove", e=>{
 
 viewer.addEventListener("touchend", endDrag);
 
-/* WHEEL ZOOM */
+// wheel zoom
 viewer.addEventListener("wheel", e=>{
   e.preventDefault();
 
@@ -185,8 +235,10 @@ viewer.addEventListener("wheel", e=>{
   applyTransform();
 },{ passive:false });
 
-/* DOUBLE CLICK → HI-RES 3× */
+// double click → hi-res exterior only
 viewer.addEventListener("dblclick", ()=>{
+  if(view !== "exterior") return;
+
   isHiRes = !isHiRes;
 
   if(isHiRes){
@@ -200,7 +252,7 @@ viewer.addEventListener("dblclick", ()=>{
   updateFrame();
 });
 
-/* FULLSCREEN */
+// fullscreen
 fsBtn.addEventListener("click", ()=>{
   if(!document.fullscreenElement){
     viewer.requestFullscreen();
@@ -208,6 +260,16 @@ fsBtn.addEventListener("click", ()=>{
     document.exitFullscreen();
   }
 });
+
+/* ============== HELPERS ============== */
+
+function showMessage(text){
+  app.innerHTML = `<div class="message">${text}</div>`;
+}
+
+/* ============== START ============== */
+
+updateFrame();
 </script>
 
 </body>
