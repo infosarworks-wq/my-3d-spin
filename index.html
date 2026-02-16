@@ -1,32 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Pro 3D Spin</title>
+    <meta charset="UTF-8">
+    <title>3D Product Viewer</title>
     <script src="https://scaleflex.cloudimg.io/v7/plugins/js-cloudimage-360-view/latest/js-cloudimage-360-view.min.js"></script>
-   <style>
-        body { 
-            background-color: #ffffff; 
-            display: flex; 
-            justify-content: center; 
-            align-items: flex-start; /* Keeps it at the top */
-            padding-top: 20px; 
-            margin: 0;
-        }
-        .viewer-box { 
-            width: 100%; 
-            max-width: 500px; /* Narrower width for vertical photos */
-            height: auto;
-        }
-        /* This ensures the viewer stays tall */
-        .cloudimage-360 img {
-            object-fit: contain;
-            max-height: 80vh; /* Limits height so it fits on phone screens */
-        }
+    <style>
+        body { background-color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .viewer-box { width: 95%; max-width: 500px; } /* Set thin for vertical photos */
     </style>
 </head>
 <body>
 
-<div class="viewer-container">
+<div class="viewer-box">
     <div class="cloudimage-360"
          data-folder="https://infosarworks-wq.github.io/my-3d-spin/images/Lowres/"
          data-zoom-folder="https://infosarworks-wq.github.io/my-3d-spin/images/highres/"
@@ -35,12 +20,8 @@
          data-amount-y="5"
          data-index-zero-base="false"
          data-image-list-format="0000"
-         data-lazyload="true"
-         data-box-shadow="0 0 10px rgba(0,0,0,0.1)">
-         
-         <div class="cloudimage-360-prev"></div>
-         <div class="cloudimage-360-next"></div>
-    </div>
+         data-responsive="true"
+         data-zoom="2"> </div>
 </div>
 
 <script>
