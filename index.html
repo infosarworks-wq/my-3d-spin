@@ -1,41 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ArchViz 360 Viewer</title>
 
 <script src="https://cdn.scaleflex.it/plugins/js-cloudimage-360-view/latest/js-cloudimage-360-view.min.js"></script>
 
 <style>
-body{
-  margin:0;
-  background:#000;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+body {
+  margin: 0;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
 
-.viewer{
-  width:100%;
-  max-width:1280px;
-  aspect-ratio:16/9;
+.viewer {
+  width: 100%;
+  max-width: 1280px;
+  aspect-ratio: 16 / 9;
 }
 </style>
 </head>
+
 <body>
 
 <div class="viewer">
   <div
     id="viewer360"
     class="cloudimage-360"
-    data-filename-x="{index}.jpg"
-    data-filename-y="{index}.jpg"
-    data-amount-x="24"
-    data-amount-y="5"
+    data-folder=""
+    data-filename="{index}.jpg"
+    data-amount="120"
     data-index-zero-base="false"
-    data-image-list-format="0000"
     data-drag-speed="150"
     data-autoplay="false"
     data-zoom="3"
@@ -45,37 +44,37 @@ body{
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+const params = new URLSearchParams(window.location.search);
+const project = params.get("project");
+const view = params.get("view");
 
-  const params = new URLSearchParams(window.location.search);
-  const project = params.get("project");
-  const view = params.get("view");
+const bucket = "https://storage.googleapis.com/archviz-viewer-images";
 
-  const bucket = "https://storage.googleapis.com/archviz-viewer-images";
-  const viewer = document.getElementById("viewer360");
+if (!project || !view) {
+  document.body.innerHTML = "<h1 style='color:white'>Missing project or view</h1>";
+} else {
 
-  if(!project || !view){
-    document.body.innerHTML = "<h1 style='color:white'>Missing project or view</h1>";
-    return;
-  }
+  let folder = "";
 
-  let folder;
-
-  if(view === "exterior"){
+  if (view === "exterior") {
     folder = `${bucket}/${project}/exterior/lowres/`;
-    viewer.setAttribute("data-zoom-folder", `${bucket}/${project}/exterior/highres/`);
-    viewer.setAttribute("data-amount-y", "5");
+
+    document.getElementById("viewer360").setAttribute(
+      "data-zoom-folder",
+      `${bucket}/${project}/exterior/highres/`
+    );
+
+    document.getElementById("viewer360").setAttribute("data-amount", "120");
+
   } else {
     folder = `${bucket}/${project}/rooms/${view}/`;
-    viewer.setAttribute("data-amount-y", "1"); // rooms are flat 360
+    document.getElementById("viewer360").setAttribute("data-amount", "24");
   }
 
-  viewer.setAttribute("data-folder", folder);
+  document.getElementById("viewer360").setAttribute("data-folder", folder);
 
-  if (window.CI360 && typeof window.CI360.init === "function") {
-    window.CI360.init();
-  }
-});
+  window.CI360.init();
+}
 </script>
 
 </body>
