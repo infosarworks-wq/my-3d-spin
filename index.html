@@ -30,9 +30,7 @@ body{
   <div
     id="viewer360"
     class="cloudimage-360"
-    data-folder=""
     data-filename-x="{index}.jpg"
-    data-filename-y=""
     data-amount-x="24"
     data-amount-y="5"
     data-index-zero-base="false"
@@ -46,33 +44,38 @@ body{
 </div>
 
 <script>
-const params = new URLSearchParams(window.location.search);
-const project = params.get("project");
-const view = params.get("view");
+document.addEventListener("DOMContentLoaded", () => {
 
-const bucket = "https://storage.googleapis.com/archviz-viewer-images";
+  const params = new URLSearchParams(window.location.search);
+  const project = params.get("project");
+  const view = params.get("view");
 
-if(!project || !view){
-  document.body.innerHTML = "<h1 style='color:white'>Missing project or view</h1>";
-}else{
+  const bucket = "https://storage.googleapis.com/archviz-viewer-images";
+  const viewer = document.getElementById("viewer360");
+
+  if(!project || !view){
+    document.body.innerHTML = "<h1 style='color:white'>Missing project or view</h1>";
+    return;
+  }
 
   let folder = "";
 
   if(view === "exterior"){
     folder = `${bucket}/${project}/exterior/lowres/`;
-
-    document.getElementById("viewer360").setAttribute(
-      "data-zoom-folder",
-      `${bucket}/${project}/exterior/highres/`
-    );
-  }else{
+    viewer.setAttribute("data-zoom-folder", `${bucket}/${project}/exterior/highres/`);
+  } else {
     folder = `${bucket}/${project}/rooms/${view}/`;
+    viewer.setAttribute("data-amount-y", "1"); // rooms are single row
   }
 
-  document.getElementById("viewer360").setAttribute("data-folder", folder);
+  viewer.setAttribute("data-folder", folder);
 
-  window.CI360.init();
-}
+  // SAFE INIT (after attributes exist)
+  if (window.CI360) {
+    window.CI360.destroy();
+    window.CI360.init();
+  }
+});
 </script>
 
 </body>
