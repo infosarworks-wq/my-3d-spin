@@ -28,19 +28,7 @@ body {
 <body>
 
 <div class="viewer">
-  <div
-    id="viewer360"
-    class="cloudimage-360"
-    data-folder=""
-    data-filename="{index}.jpg"
-    data-amount="120"
-    data-index-zero-base="false"
-    data-drag-speed="150"
-    data-autoplay="false"
-    data-zoom="3"
-    data-fullscreen="true"
-    data-magnifier="2">
-  </div>
+  <div id="viewer360" class="cloudimage-360"></div>
 </div>
 
 <script>
@@ -54,24 +42,28 @@ if (!project || !view) {
   document.body.innerHTML = "<h1 style='color:white'>Missing project or view</h1>";
 } else {
 
-  let folder = "";
+  const el = document.getElementById("viewer360");
 
   if (view === "exterior") {
-    folder = `${bucket}/${project}/exterior/lowres/`;
 
-    document.getElementById("viewer360").setAttribute(
-      "data-zoom-folder",
-      `${bucket}/${project}/exterior/highres/`
-    );
-
-    document.getElementById("viewer360").setAttribute("data-amount", "120");
+    el.setAttribute("data-folder", `${bucket}/${project}/exterior/lowres/`);
+    el.setAttribute("data-zoom-folder", `${bucket}/${project}/exterior/highres/`);
+    el.setAttribute("data-amount", "120");
 
   } else {
-    folder = `${bucket}/${project}/rooms/${view}/`;
-    document.getElementById("viewer360").setAttribute("data-amount", "24");
+
+    el.setAttribute("data-folder", `${bucket}/${project}/rooms/${view}/`);
+    el.setAttribute("data-amount", "24");
+
   }
 
-  document.getElementById("viewer360").setAttribute("data-folder", folder);
+  el.setAttribute("data-filename", "{index}.jpg");
+  el.setAttribute("data-index-zero-base", "false");
+  el.setAttribute("data-drag-speed", "150");
+  el.setAttribute("data-autoplay", "false");
+  el.setAttribute("data-zoom", "3");
+  el.setAttribute("data-fullscreen", "true");
+  el.setAttribute("data-magnifier", "2");
 
   window.CI360.init();
 }
