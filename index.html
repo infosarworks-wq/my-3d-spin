@@ -31,10 +31,11 @@ body {
     id="viewer360"
     class="cloudimage-360"
     data-folder=""
-    data-filename="{index}.jpg"
+    data-filename-x="{index}.jpg"
     data-amount-x="24"
     data-amount-y="5"
     data-index-zero-base="false"
+    data-image-list-format="0000"
     data-drag-speed="150"
     data-autoplay="false"
     data-zoom="3"
@@ -52,24 +53,25 @@ const bucket = "https://storage.googleapis.com/archviz-viewer-images";
 
 let folder = "";
 
-if (view === "exterior") {
-  folder = `${bucket}/${project}/exterior/lowres/`;
-
-  document.getElementById("viewer360").setAttribute(
-    "data-zoom-folder",
-    `${bucket}/${project}/exterior/highres/`
-  );
-
-} else {
-  folder = `${bucket}/${project}/rooms/${view}/`;
-
-  document.getElementById("viewer360").setAttribute("data-amount-x", "24");
-  document.getElementById("viewer360").setAttribute("data-amount-y", "5");
-}
-
 if (!project || !view) {
   document.body.innerHTML = "<h1 style='color:white'>Missing project or view</h1>";
 } else {
+
+  if (view === "exterior") {
+
+    folder = `${bucket}/${project}/exterior/lowres/`;
+
+    document.getElementById("viewer360").setAttribute(
+      "data-zoom-folder",
+      `${bucket}/${project}/exterior/highres/`
+    );
+
+  } else {
+
+    folder = `${bucket}/${project}/rooms/${view}/`;
+
+  }
+
   document.getElementById("viewer360").setAttribute("data-folder", folder);
 
   window.CI360.init();
