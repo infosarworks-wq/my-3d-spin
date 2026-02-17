@@ -58,22 +58,23 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  let folder = "";
+  let folder;
 
   if(view === "exterior"){
     folder = `${bucket}/${project}/exterior/lowres/`;
     viewer.setAttribute("data-zoom-folder", `${bucket}/${project}/exterior/highres/`);
   } else {
     folder = `${bucket}/${project}/rooms/${view}/`;
-    viewer.setAttribute("data-amount-y", "1"); // rooms are single row
+    viewer.setAttribute("data-amount-y", "1"); // rooms = single vertical row
   }
 
   viewer.setAttribute("data-folder", folder);
 
-  // SAFE INIT (after attributes exist)
-  if (window.CI360) {
-    window.CI360.destroy();
+  // SAFE INIT (only once, no destroy)
+  if (window.CI360 && typeof window.CI360.init === "function") {
     window.CI360.init();
+  } else {
+    console.error("CI360 failed to load.");
   }
 });
 </script>
