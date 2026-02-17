@@ -8,19 +8,19 @@
 <script src="https://cdn.scaleflex.it/plugins/js-cloudimage-360-view/latest/js-cloudimage-360-view.min.js"></script>
 
 <style>
-body {
-  margin: 0;
-  background: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+body{
+  margin:0;
+  background:#000;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
 
-.viewer {
-  width: 100%;
-  max-width: 1280px;
-  aspect-ratio: 16 / 9;
+.viewer{
+  width:100%;
+  max-width:1280px;
+  aspect-ratio:16/9;
 }
 </style>
 </head>
@@ -32,6 +32,7 @@ body {
     class="cloudimage-360"
     data-folder=""
     data-filename-x="{index}.jpg"
+    data-filename-y=""
     data-amount-x="24"
     data-amount-y="5"
     data-index-zero-base="false"
@@ -51,25 +52,21 @@ const view = params.get("view");
 
 const bucket = "https://storage.googleapis.com/archviz-viewer-images";
 
-let folder = "";
-
-if (!project || !view) {
+if(!project || !view){
   document.body.innerHTML = "<h1 style='color:white'>Missing project or view</h1>";
-} else {
+}else{
 
-  if (view === "exterior") {
+  let folder = "";
 
+  if(view === "exterior"){
     folder = `${bucket}/${project}/exterior/lowres/`;
 
     document.getElementById("viewer360").setAttribute(
       "data-zoom-folder",
       `${bucket}/${project}/exterior/highres/`
     );
-
-  } else {
-
+  }else{
     folder = `${bucket}/${project}/rooms/${view}/`;
-
   }
 
   document.getElementById("viewer360").setAttribute("data-folder", folder);
