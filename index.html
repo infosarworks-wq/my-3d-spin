@@ -34,6 +34,49 @@ body{
     data-filename-y="{index}.jpg"
     data-amount-x="24"
     data-amount-y="5"
-    data-index-zero-base="false
+    data-index-zero-base="false"
+    data-image-list-format="0000"
+    data-drag-speed="150"
+    data-autoplay="false"
+    data-zoom="3"
+    data-fullscreen="true"
+    data-magnifier="2">
+  </div>
+</div>
 
-    
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const params = new URLSearchParams(window.location.search);
+  const project = params.get("project");
+  const view = params.get("view");
+
+  const bucket = "https://storage.googleapis.com/archviz-viewer-images";
+  const viewer = document.getElementById("viewer360");
+
+  if(!project || !view){
+    document.body.innerHTML = "<h1 style='color:white'>Missing project or view</h1>";
+    return;
+  }
+
+  let folder;
+
+  if(view === "exterior"){
+    folder = `${bucket}/${project}/exterior/lowres/`;
+    viewer.setAttribute("data-zoom-folder", `${bucket}/${project}/exterior/highres/`);
+    viewer.setAttribute("data-amount-y", "5");
+  } else {
+    folder = `${bucket}/${project}/rooms/${view}/`;
+    viewer.setAttribute("data-amount-y", "1"); // rooms are flat 360
+  }
+
+  viewer.setAttribute("data-folder", folder);
+
+  if (window.CI360 && typeof window.CI360.init === "function") {
+    window.CI360.init();
+  }
+});
+</script>
+
+</body>
+</html>
