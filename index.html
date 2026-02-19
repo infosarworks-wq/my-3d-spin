@@ -394,19 +394,70 @@ viewer.addEventListener('touchend', () => {
 });
 
 // ── Fullscreen ────────────────────────────────────────────────
+let cssFullscreen = false;
+
+function enterCSSFullscreen() {
+  cssFullscreen = true;
+  viewer.style.position = 'fixed';
+  viewer.style.top = '0';
+  viewer.style.left = '0';
+  viewer.style.width = '100vw';
+  viewer.style.height = '100vh';
+  viewer.style.zIndex = '9999';
+  document.body.style.overflow = 'hidden';
+  btnFS.textContent = '✕';
+  btnFS.title = 'Exit fullscreen';
+}
+
+function exitCSSFullscreen() {
+  cssFullscreen = false;
+  viewer.style.position = '';
+  viewer.style.top = '';
+  viewer.style.left = '';
+  viewer.style.width = '';
+  viewer.style.height = '';
+  viewer.style.zIndex = '';
+  document.body.style.overflow = '';
+  btnFS.textContent = '⛶';
+  btnFS.title = 'Toggle fullscreen';
+}
+
 btnFS.addEventListener('click', () => {
-  if (!document.fullscreenElement) {
-    viewer.requestFullscreen().catch(() => {});
-    btnFS.textContent = '✕';
-    btnFS.title = 'Exit fullscreen';
+  // If already in CSS fullscreen, exit it
+  if (cssFullscreen) {
+    exitCSSFullscreen();
+    return;
+  }
+  // If already in native fullscreen, exit it
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    return;
+  }
+  // Try native fullscreen first, fall back to CSS
+  const el = viewer;
+  const requestFS = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+  if (requestFS) {
+    requestFS.call(el).then(() => {
+      btnFS.textContent = '✕';
+      btnFS.title = 'Exit fullscreen';
+    }).catch(() => {
+      // Native failed (e.g. iOS) — use CSS fallback
+      enterCSSFullscreen();
+    });
   } else {
-    document.exitFullscreen();
+    // No API support at all — use CSS fallback
+    enterCSSFullscreen();
+  }
+});
+
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && !cssFullscreen) {
     btnFS.textContent = '⛶';
     btnFS.title = 'Toggle fullscreen';
   }
 });
-document.addEventListener('fullscreenchange', () => {
-  if (!document.fullscreenElement) {
+document.addEventListener('webkitfullscreenchange', () => {
+  if (!document.webkitFullscreenElement && !cssFullscreen) {
     btnFS.textContent = '⛶';
     btnFS.title = 'Toggle fullscreen';
   }
