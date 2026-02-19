@@ -303,20 +303,23 @@ function showFrame(r, c, hires = false) {
 
 // ── Zoom ──────────────────────────────────────────────────────
 function applyTransform() {
+  const scale = zoomed ? (isExt ? ZOOM_SCALE : 2) : 1;
   frame.style.transform = zoomed
-    ? `scale(${ZOOM_SCALE}) translate(${panX}px, ${panY}px)`
+    ? `scale(${scale}) translate(${panX}px, ${panY}px)`
     : 'none';
 }
 
 function enterZoom() {
-  if (!isExt) return;
   zoomed = true;
   panX = 0; panY = 0;
   viewer.classList.add('zoomed');
   viewer.classList.remove('dragging');
   hudZoomTip.style.display    = 'none';
   hudZoomActive.style.display = 'block';
-  showFrame(row, col, true);
+  // Exterior loads highres at x3, rooms zoom x2 on same image
+  if (isExt) {
+    showFrame(row, col, true);
+  }
   applyTransform();
 }
 
@@ -489,7 +492,7 @@ async function init() {
     await preloadAll();
     overlayLoad.classList.add('hidden');
     showFrame(row, col);
-    if (isExt) hudZoomTip.style.display = 'block';
+    hudZoomTip.style.display = 'block';
   } catch (e) {
     const msg = viewType === 'room'
       ? `Room not found: "${roomName}"`
