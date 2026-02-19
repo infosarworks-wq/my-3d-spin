@@ -28,8 +28,8 @@
       user-select: none;
       -webkit-user-select: none;
     }
-    #viewer.dragging  { cursor: grabbing; }
-    #viewer.zoomed    { cursor: move; }
+    #viewer.dragging { cursor: grabbing; }
+    #viewer.zoomed   { cursor: move; }
 
     #frame {
       position: absolute;
@@ -49,22 +49,49 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: rgba(0,0,0,0.75);
+      background: #0e0e0e;
       z-index: 20;
-      gap: 16px;
+      gap: 12px;
     }
     .overlay.hidden { display: none; }
 
-    .spinner {
-      width: 48px; height: 48px;
-      border: 4px solid rgba(255,255,255,0.15);
-      border-top-color: #c0392b;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    /* ── Loading bar ── */
+    .load-logo {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: #fff;
+      margin-bottom: 10px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .load-label {
+      font-size: 0.78rem;
+      opacity: 0.45;
+      margin-bottom: 2px;
+    }
+    .progress-wrap {
+      width: 240px;
+      height: 3px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #c0392b;
+      border-radius: 4px;
+      transition: width 0.1s linear;
+    }
+    .progress-pct {
+      font-size: 0.72rem;
+      opacity: 0.35;
+      margin-top: 4px;
+    }
 
-    .overlay-text { font-size: 1rem; opacity: 0.8; }
+    /* ── Error ── */
+    .error-icon  { font-size: 3rem; }
+    .error-title { font-size: 1.4rem; font-weight: 600; }
+    .error-sub   { font-size: 0.9rem; opacity: 0.6; }
 
     /* ── HUD badges ── */
     .hud {
@@ -77,18 +104,35 @@
       background: rgba(0,0,0,0.55);
       backdrop-filter: blur(4px);
     }
-    #hud-controls { bottom: 14px; left: 50%; transform: translateX(-50%); }
-    #hud-zoom-tip { bottom: 14px; right: 14px; display: none; }
+    #hud-controls    { bottom: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+    #hud-zoom-tip    { bottom: 14px; right: 56px; display: none; }
     #hud-zoom-active {
       top: 14px; right: 14px;
       background: rgba(180,20,20,0.85);
       display: none;
     }
 
-    /* ── Error / not-found ── */
-    .error-icon { font-size: 3rem; }
-    .error-title { font-size: 1.4rem; font-weight: 600; }
-    .error-sub { font-size: 0.9rem; opacity: 0.6; }
+    /* ── Fullscreen button ── */
+    #btn-fullscreen {
+      position: absolute;
+      bottom: 10px;
+      right: 14px;
+      z-index: 10;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(4px);
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    #btn-fullscreen:hover { background: rgba(192,57,43,0.8); }
   </style>
 </head>
 <body>
@@ -98,8 +142,12 @@
 
   <!-- Loading overlay -->
   <div class="overlay" id="overlay-loading">
-    <div class="spinner"></div>
-    <span class="overlay-text">Loading project…</span>
+    <div class="load-logo">SAR WORKS</div>
+    <div class="load-label" id="load-label">Preparing viewer…</div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="progress-pct" id="progress-pct">0%</div>
   </div>
 
   <!-- Error overlay -->
@@ -113,54 +161,58 @@
   <div class="hud" id="hud-controls">Drag to rotate &nbsp;·&nbsp; Swipe up/down to tilt</div>
   <div class="hud" id="hud-zoom-tip">Double-click to zoom</div>
   <div class="hud" id="hud-zoom-active">🔍 ZOOMED — drag to pan &nbsp;·&nbsp; double-click to exit</div>
+
+  <!-- Fullscreen button -->
+  <button id="btn-fullscreen" title="Toggle fullscreen">⛶</button>
 </div>
 
 <script>
 /* ============================================================
-   SAR Works · 3D Spin Viewer  v1.0
+   SAR Works · 3D Spin Viewer  v2.0
    ============================================================
    URL format:
      ?project=sar0001&view=exterior
      ?project=sar0001&view=room&room=kitchen
 
-   Cloud storage structure expected:
-     gs://YOUR_BUCKET/{project}/exterior/lowres/0001.png … 0120.png
-     gs://YOUR_BUCKET/{project}/exterior/hires/0001.png  … 0120.png
-     gs://YOUR_BUCKET/{project}/interior/{room}/0001.png … 0120.png
+   Bucket structure:
+     {project}/exterior/lowres/0001.jpg  …  0120.jpg
+     {project}/exterior/highres/0001.jpg …  0120.jpg
+     {project}/rooms/{roomname}/0001.jpg …  0120.jpg
 
-   Grid layout (120 images):
-     24 columns  = one full 360° horizontal spin
-     5 rows      = vertical tilt steps (top → bottom)
-     Image index = row * 24 + col + 1  (1-based, 4-digit zero-padded)
+   Grid: 24 cols (360° horizontal) x 5 rows (vertical tilt)
    ============================================================ */
 
-// ─── ① CONFIGURE THIS ────────────────────────────────────────
-const GCS_BUCKET = 'archviz-viewer-images';
-const IMAGE_EXT  = 'jpg';               // file extension used in bucket
+// ─── CONFIGURE ───────────────────────────────────────────────
+const GCS_BUCKET    = 'archviz-viewer-images';
+const IMAGE_EXT     = 'jpg';
 // ─────────────────────────────────────────────────────────────
 
-const COLS           = 24;      // images per horizontal 360° spin
-const ROWS           = 5;       // vertical tilt steps
-const ZOOM_SCALE     = 3;       // zoom factor for exterior hires
-const H_SENSITIVITY  = 8;       // px of drag per 1-column step  (↑ = slower)
-const V_SENSITIVITY  = 40;      // px of drag per 1-row step     (↑ = slower)
+const COLS          = 24;
+const ROWS          = 5;
+const TOTAL_IMAGES  = COLS * ROWS;  // 120
+const ZOOM_SCALE    = 3;
+const H_SENSITIVITY = 8;
+const V_SENSITIVITY = 40;
 
 // ── State ─────────────────────────────────────────────────────
 let project  = '';
-let viewType = '';   // 'exterior' | 'room'
+let viewType = '';
 let roomName = '';
 let isExt    = false;
 
-let col = 0;                      // current horizontal index  0–23 (wraps)
-let row = Math.floor(ROWS / 2);   // current vertical index    0–4  (clamped, start middle)
+let col = 0;
+let row = Math.floor(ROWS / 2);
 
-let zoomed    = false;
+let zoomed = false;
 let panX = 0, panY = 0;
 
 let dragging   = false;
 let dragStartX = 0, dragStartY = 0;
-let colAtDrag  = 0, rowAtDrag = 0;
+let colAtDrag  = 0, rowAtDrag  = 0;
 let panAtDragX = 0, panAtDragY = 0;
+
+// Preloaded image cache [0..119]
+const cache = new Array(TOTAL_IMAGES);
 
 // ── DOM ───────────────────────────────────────────────────────
 const viewer        = document.getElementById('viewer');
@@ -172,27 +224,21 @@ const errSub        = document.getElementById('error-sub');
 const hudControls   = document.getElementById('hud-controls');
 const hudZoomTip    = document.getElementById('hud-zoom-tip');
 const hudZoomActive = document.getElementById('hud-zoom-active');
+const progressBar   = document.getElementById('progress-bar');
+const progressPct   = document.getElementById('progress-pct');
+const loadLabel     = document.getElementById('load-label');
+const btnFS         = document.getElementById('btn-fullscreen');
 
 // ── Helpers ───────────────────────────────────────────────────
 function pad4(n) { return String(n).padStart(4, '0'); }
 
-function imageIndex(r, c) { return r * COLS + c + 1; }   // 1–120
-
 function imageURL(r, c, hires = false) {
-  const num = pad4(imageIndex(r, c));
+  const num = pad4(r * COLS + c + 1);  // 1-based filename
   if (isExt) {
     const res = hires ? 'highres' : 'lowres';
     return `https://storage.googleapis.com/${GCS_BUCKET}/${project}/exterior/${res}/${num}.${IMAGE_EXT}`;
   }
   return `https://storage.googleapis.com/${GCS_BUCKET}/${project}/rooms/${encodeURIComponent(roomName)}/${num}.${IMAGE_EXT}`;
-}
-
-function applyTransform() {
-  if (zoomed) {
-    frame.style.transform = `scale(${ZOOM_SCALE}) translate(${panX}px, ${panY}px)`;
-  } else {
-    frame.style.transform = 'none';
-  }
 }
 
 function showError(title, sub = '') {
@@ -203,12 +249,65 @@ function showError(title, sub = '') {
   errSub.textContent   = sub;
 }
 
+// ── Preloader ─────────────────────────────────────────────────
+function preloadAll() {
+  return new Promise((resolve, reject) => {
+    let loaded = 0;
+    let failed = 0;
+    let firstImageFailed = false;
+
+    loadLabel.textContent = 'Loading images…';
+
+    for (let i = 0; i < TOTAL_IMAGES; i++) {
+      const r   = Math.floor(i / COLS);
+      const c   = i % COLS;
+      const img = new Image();
+      cache[i]  = img;
+
+      img.onload = () => {
+        loaded++;
+        const pct = Math.round((loaded / TOTAL_IMAGES) * 100);
+        progressBar.style.width = pct + '%';
+        progressPct.textContent = pct + '%';
+        if (loaded + failed === TOTAL_IMAGES) resolve();
+      };
+
+      img.onerror = () => {
+        failed++;
+        if (i === 0) firstImageFailed = true;
+        if (loaded + failed === TOTAL_IMAGES) {
+          if (firstImageFailed) reject(new Error('first_image_failed'));
+          else resolve();
+        }
+      };
+
+      img.src = imageURL(r, c);
+    }
+  });
+}
+
 // ── Image display ─────────────────────────────────────────────
 function showFrame(r, c, hires = false) {
-  frame.src = imageURL(r, c, hires);
+  if (hires) {
+    frame.src = imageURL(r, c, true);
+    return;
+  }
+  // Use preloaded cache for instant, jitter-free display
+  const idx = r * COLS + c;
+  if (cache[idx] && cache[idx].complete && cache[idx].naturalWidth > 0) {
+    frame.src = cache[idx].src;
+  } else {
+    frame.src = imageURL(r, c, false);
+  }
 }
 
 // ── Zoom ──────────────────────────────────────────────────────
+function applyTransform() {
+  frame.style.transform = zoomed
+    ? `scale(${ZOOM_SCALE}) translate(${panX}px, ${panY}px)`
+    : 'none';
+}
+
 function enterZoom() {
   if (!isExt) return;
   zoomed = true;
@@ -217,7 +316,7 @@ function enterZoom() {
   viewer.classList.remove('dragging');
   hudZoomTip.style.display    = 'none';
   hudZoomActive.style.display = 'block';
-  showFrame(row, col, true);   // load hi-res version of current frame
+  showFrame(row, col, true);
   applyTransform();
 }
 
@@ -228,18 +327,15 @@ function exitZoom() {
   hudZoomTip.style.display    = 'block';
   hudZoomActive.style.display = 'none';
   frame.style.transform = 'none';
-  showFrame(row, col, false);  // back to low-res
+  showFrame(row, col, false);
 }
 
-// ── Drag / swipe handlers ─────────────────────────────────────
+// ── Drag / swipe ──────────────────────────────────────────────
 function startDrag(x, y) {
   dragging   = true;
-  dragStartX = x;
-  dragStartY = y;
-  colAtDrag  = col;
-  rowAtDrag  = row;
-  panAtDragX = panX;
-  panAtDragY = panY;
+  dragStartX = x; dragStartY = y;
+  colAtDrag  = col; rowAtDrag = row;
+  panAtDragX = panX; panAtDragY = panY;
   viewer.classList.add('dragging');
 }
 
@@ -249,18 +345,14 @@ function moveDrag(x, y) {
   const dy = y - dragStartY;
 
   if (zoomed) {
-    // Pan around the hi-res image
     panX = panAtDragX + dx / ZOOM_SCALE;
     panY = panAtDragY + dy / ZOOM_SCALE;
     applyTransform();
     return;
   }
 
-  // Horizontal rotation — wraps around 360°
   const colDelta = Math.round(-dx / H_SENSITIVITY);
   const newCol   = ((colAtDrag + colDelta) % COLS + COLS) % COLS;
-
-  // Vertical tilt — clamped (no wrap at top/bottom)
   const rowDelta = Math.round(dy / V_SENSITIVITY);
   const newRow   = Math.max(0, Math.min(ROWS - 1, rowAtDrag + rowDelta));
 
@@ -277,27 +369,23 @@ function endDrag() {
 }
 
 // Mouse
-viewer.addEventListener('mousedown',  e => { e.preventDefault(); startDrag(e.clientX, e.clientY); });
-window.addEventListener('mousemove',  e => { moveDrag(e.clientX, e.clientY); });
-window.addEventListener('mouseup',    ()  => endDrag());
-viewer.addEventListener('dblclick',   ()  => zoomed ? exitZoom() : enterZoom());
+viewer.addEventListener('mousedown', e => { e.preventDefault(); startDrag(e.clientX, e.clientY); });
+window.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+window.addEventListener('mouseup',   ()  => endDrag());
+viewer.addEventListener('dblclick',  ()  => zoomed ? exitZoom() : enterZoom());
 
 // Touch
 viewer.addEventListener('touchstart', e => {
   e.preventDefault();
-  const t = e.touches[0];
-  startDrag(t.clientX, t.clientY);
+  startDrag(e.touches[0].clientX, e.touches[0].clientY);
 }, { passive: false });
-
 viewer.addEventListener('touchmove', e => {
   e.preventDefault();
-  const t = e.touches[0];
-  moveDrag(t.clientX, t.clientY);
+  moveDrag(e.touches[0].clientX, e.touches[0].clientY);
 }, { passive: false });
+viewer.addEventListener('touchend', () => endDrag());
 
-viewer.addEventListener('touchend',   ()  => endDrag());
-
-// Detect double-tap on touch devices
+// Double-tap
 let lastTap = 0;
 viewer.addEventListener('touchend', () => {
   const now = Date.now();
@@ -305,14 +393,32 @@ viewer.addEventListener('touchend', () => {
   lastTap = now;
 });
 
-// ── Initialisation ────────────────────────────────────────────
-function init() {
+// ── Fullscreen ────────────────────────────────────────────────
+btnFS.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    viewer.requestFullscreen().catch(() => {});
+    btnFS.textContent = '✕';
+    btnFS.title = 'Exit fullscreen';
+  } else {
+    document.exitFullscreen();
+    btnFS.textContent = '⛶';
+    btnFS.title = 'Toggle fullscreen';
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement) {
+    btnFS.textContent = '⛶';
+    btnFS.title = 'Toggle fullscreen';
+  }
+});
+
+// ── Init ──────────────────────────────────────────────────────
+async function init() {
   const params = new URLSearchParams(window.location.search);
   project  = (params.get('project') || '').trim();
   viewType = (params.get('view')    || '').trim().toLowerCase();
   roomName = (params.get('room')    || '').trim().toLowerCase();
 
-  // Validate params
   if (!project) {
     showError('No project specified.', 'Add ?project=sar0001 to the URL.');
     return;
@@ -328,22 +434,17 @@ function init() {
 
   isExt = (viewType === 'exterior');
 
-  // Show zoom tip only for exterior
-  if (isExt) hudZoomTip.style.display = 'block';
-
-  // Load the initial frame and watch for errors
-  frame.onload = () => {
+  try {
+    await preloadAll();
     overlayLoad.classList.add('hidden');
-  };
-
-  frame.onerror = () => {
+    showFrame(row, col);
+    if (isExt) hudZoomTip.style.display = 'block';
+  } catch (e) {
     const msg = viewType === 'room'
       ? `Room not found: "${roomName}"`
       : 'Could not load project images.';
     showError(msg, 'Check bucket name, project ID, and folder structure.');
-  };
-
-  showFrame(row, col);
+  }
 }
 
 init();
